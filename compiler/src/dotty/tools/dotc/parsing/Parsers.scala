@@ -1210,6 +1210,11 @@ object Parsers {
         atPos(in.skipToken()) { Return(if (isExprIntro) expr() else EmptyTree, EmptyTree) }
       case FOR =>
         forExpr()
+      case LBRACKET =>
+        val start = in.offset
+        val tparams = typeParamClause(ParamOwner.TypeParam)
+        assert(isIdent && in.name.toString == "->", "Expected `->`")
+        atPos(start, in.skipToken())(PolyFunction(tparams, expr()))
       case _ =>
         if (isIdent(nme.inline) && !in.inModifierPosition() && in.lookaheadIn(canStartExpressionTokens)) {
           val start = in.skipToken()
