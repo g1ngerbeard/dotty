@@ -89,6 +89,7 @@ class Compiler {
     List(new ElimErasedValueType,    // Expand erased value types to their underlying implmementation types
          new VCElideAllocations,     // Peep-hole optimization to eliminate unnecessary value class allocations
          new TailRec,                // Rewrite tail recursion to loops
+         new ElimPolyFunction,       // Rewrite PolyFunction subclasses to FunctionN subclasses
          new Mixin,                  // Expand trait fields and trait initializers
          new LazyVals,               // Expand lazy vals
          new Memoize,                // Add private fields to getters and setters
