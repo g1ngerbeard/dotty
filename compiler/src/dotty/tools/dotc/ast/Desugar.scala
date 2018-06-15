@@ -1193,6 +1193,15 @@ object desugar {
     }
 
     val desugared = tree match {
+      case PolyFunction(targs, body) if (ctx.mode.is(Mode.Type)) =>
+        // Desugar [T_1, ..., T_M] -> (P_1, ..., P_N) => R
+        // Into    scala.PolyFunction { def apply[T_1, ..., T_M](x$1: P_1, ..., x$N: P_N): R }
+        val Function(vargs, resType) = body
+        val applyTParams = targs.asInstanceOf[List[TypeDef]]
+        val applyVParams = vargs.zipWithIndex.map({case (p, n) => makeSyntheticParameter(n + 1, p)})
+        RefinedTypeTree(ref(defn.PolyFunctionType), List(
+          DefDef(nme.apply, applyTParams, List(applyVParams), resType, EmptyTree)
+        ))
       case SymbolLit(str) =>
         Literal(Constant(scala.Symbol(str)))
       case Quote(expr) =>

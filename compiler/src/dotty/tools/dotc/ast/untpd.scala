@@ -58,6 +58,12 @@ object untpd extends Trees.Instance[Untyped] with UntypedTreeInfo {
   /** A function type with `implicit` or `erased` modifiers */
   class FunctionWithMods(args: List[Tree], body: Tree, val mods: Modifiers) extends Function(args, body)
 
+  /** A polymorphic function type */
+  case class PolyFunction(targs: List[Tree], body: Tree) extends Tree {
+    override def isTerm = body.isTerm
+    override def isType = body.isType
+  }
+
   /** A function created from a wildcard expression
    *  @param  placeholderParams  a list of definitions of synthetic parameters.
    *  @param  body               the function body where wildcards are replaced by
@@ -440,6 +446,10 @@ object untpd extends Trees.Instance[Untyped] with UntypedTreeInfo {
     def Function(tree: Tree)(args: List[Tree], body: Tree): Tree = tree match {
       case tree: Function if (args eq tree.args) && (body eq tree.body) => tree
       case _ => finalize(tree, untpd.Function(args, body))
+    }
+    def PolyFunction(tree: Tree)(targs: List[Tree], body: Tree) = tree match {
+      case tree: PolyFunction if (targs eq tree.targs) && (body eq tree.body) => tree
+      case _ => finalize(tree, untpd.PolyFunction(targs, body))
     }
     def InfixOp(tree: Tree)(left: Tree, op: Ident, right: Tree): Tree = tree match {
       case tree: InfixOp if (left eq tree.left) && (op eq tree.op) && (right eq tree.right) => tree

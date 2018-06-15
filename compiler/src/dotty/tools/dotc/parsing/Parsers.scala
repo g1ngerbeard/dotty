@@ -809,6 +809,8 @@ object Parsers {
           val tparams = typeParamClause(ParamOwner.TypeParam)
           if (in.token == ARROW)
             atPos(start, in.skipToken())(LambdaTypeTree(tparams, toplevelTyp()))
+          else if (isIdent && in.name.toString == "->")
+            atPos(start, in.skipToken())(PolyFunction(tparams, toplevelTyp()))
           else { accept(ARROW); typ() }
         }
         else infixType()
