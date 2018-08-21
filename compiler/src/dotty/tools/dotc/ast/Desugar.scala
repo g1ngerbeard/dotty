@@ -659,7 +659,7 @@ object desugar {
       ctx.error(hl"""${"abstract"} modifier cannot be used for objects""", flagPos(Abstract))
     for (flag <- List(Sealed, Final)) {
       if (mods is flag)
-        ctx.warning(hl"""${flag.toString} modifier is redundant for objects""", flagPos(flag))
+        ctx.warning(hl"""$flag modifier is redundant for objects""", flagPos(flag))
     }
 
     if (mods is Package)
