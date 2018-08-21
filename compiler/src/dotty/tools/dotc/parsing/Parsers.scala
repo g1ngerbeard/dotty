@@ -2319,11 +2319,12 @@ object Parsers {
 
       def flagPos(flag: FlagSet) = mods.mods.find(_.flags == flag).get.pos
       if (mods is Abstract)
-        syntaxError(hl"""${"abstract"} modifier cannot be used for objects""", flagPos(Abstract))
-      for (flag <- List(Sealed, Final)) {
-        if (mods is flag)
-          warning(hl"""$flag modifier is redundant for objects""", source atPos flagPos(flag))
-      }
+        syntaxError(hl"""${Abstract} modifier cannot be used for objects""", flagPos(Abstract))
+      if (mods is Sealed)
+        syntaxError(hl"""${Sealed} modifier is redundant for objects""", flagPos(Sealed))
+      // XXX Make this an error.
+      if (mods is Final)
+        warning(hl"""${Final} modifier is redundant for objects""", source atPos flagPos(Final))
 
       ModuleDef(name, template).withMods(mods).setComment(in.getDocComment(start))
     }
