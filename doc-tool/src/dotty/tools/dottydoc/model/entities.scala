@@ -158,7 +158,7 @@ sealed trait NonEntity extends Package with TypeAlias with Class with CaseClass 
   def companionPath_=(xs: List[String]) = ()
 }
 
-final case object NonEntity extends NonEntity
-final case object RootEntity extends NonEntity {
+case object NonEntity extends NonEntity
+case object RootEntity extends NonEntity {
   override val name = "root"
 }
