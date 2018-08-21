@@ -652,6 +652,16 @@ object desugar {
     val impl = mdef.impl
     val mods = mdef.mods
     def isEnumCase = mods.isEnumCase
+
+    def flagPos(flag: FlagSet) = mods.mods.find(_.flags == flag).get.pos
+
+    if (mods is Abstract)
+      ctx.error(hl"""${"abstract"} modifier cannot be used for objects""", flagPos(Abstract))
+    for (flag <- List(Sealed, Final)) {
+      if (mods is flag)
+        ctx.warning(hl"""${flag.toString} modifier is redundant for objects""", flagPos(flag))
+    }
+
     if (mods is Package)
       PackageDef(Ident(moduleName), cpy.ModuleDef(mdef)(nme.PACKAGE, impl).withMods(mods &~ Package) :: Nil)
     else if (isEnumCase)
