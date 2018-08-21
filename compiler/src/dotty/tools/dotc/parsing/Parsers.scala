@@ -2316,6 +2316,15 @@ object Parsers {
 
     def objectDefRest(start: Offset, mods: Modifiers, name: TermName): ModuleDef = {
       val template = templateOpt(emptyConstructor)
+
+      def flagPos(flag: FlagSet) = mods.mods.find(_.flags == flag).get.pos
+      if (mods is Abstract)
+        syntaxError(hl"""${"abstract"} modifier cannot be used for objects""", flagPos(Abstract))
+      for (flag <- List(Sealed, Final)) {
+        if (mods is flag)
+          warning(hl"""$flag modifier is redundant for objects""", source atPos flagPos(flag))
+      }
+
       ModuleDef(name, template).withMods(mods).setComment(in.getDocComment(start))
     }
 
