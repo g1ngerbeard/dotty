@@ -846,14 +846,21 @@ trait Checking {
   }
 
   /** Check that all case classes that extend `scala.Enum` are `enum` cases */
-  def checkEnum(cdef: untpd.TypeDef, cls: Symbol)(implicit ctx: Context): Unit = {
+  def checkEnum(cdef: untpd.TypeDef, cls: Symbol, firstParent: Symbol)(implicit ctx: Context): Unit = {
     import untpd.modsDeco
     def isEnumAnonCls =
       cls.isAnonymousClass &&
       cls.owner.isTerm &&
       (cls.owner.flagsUNSAFE.is(Case) || cls.owner.name == nme.DOLLAR_NEW)
-    if (!cdef.mods.isEnumCase && !isEnumAnonCls)
-      ctx.error(em"normal case $cls in ${cls.owner} cannot extend an enum", cdef.pos)
+    if (!cdef.mods.isEnumCase && !isEnumAnonCls) {
+      if (cls.is(Case))
+        ctx.error(em"normal case $cls in ${cls.owner} cannot extend an enum", cdef.pos)
+      else if (firstParent != defn.EnumClass && firstParent.derivesFrom(defn.EnumClass) && !cdef.mods.isEnumCase && !isEnumAnonCls)
+        // Since enums are classes and Namer checks that classes don't extend multiple classes, we only check the class
+        // parent.
+        //Tricky to phrase; language taken from "case-to-case inheritance is prohibited".
+        ctx.error(s"${cls.name} has enum ancestor ${firstParent.name}, but inheriting from enums is prohibited", cdef.pos)
+    }
   }
 
   /** Check that all references coming from enum cases in an enum companion object
@@ -931,7 +938,7 @@ trait Checking {
 
 trait ReChecking extends Checking {
   import tpd._
-  override def checkEnum(cdef: untpd.TypeDef, cls: Symbol)(implicit ctx: Context): Unit = ()
+  override def checkEnum(cdef: untpd.TypeDef, cls: Symbol, firstParent: Symbol)(implicit ctx: Context): Unit = ()
   override def checkRefsLegal(tree: tpd.Tree, badOwner: Symbol, allowed: (Name, Symbol) => Boolean, where: String)(implicit ctx: Context): Unit = ()
   override def checkEnumCompanions(stats: List[Tree], enumContexts: collection.Map[Symbol, Context])(implicit ctx: Context): List[Tree] = stats
 }
