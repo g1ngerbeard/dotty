@@ -7,8 +7,8 @@ object Macros {
   implicit inline def printTree[T](x: => T): Unit =
     ~impl('(x))
 
-  def impl[T](x: Expr[T])(implicit reflect: Reflection): Expr[Unit] = {
-    import reflect._
+  def impl[T](x: Expr[T])(implicit staging: StagingContext): Expr[Unit] = {
+    import staging.reflection._
 
     val tree = x.unseal
 

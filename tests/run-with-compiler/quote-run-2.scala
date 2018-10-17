@@ -1,22 +1,21 @@
 
-import scala.quoted.Toolbox.Default._
-
 import scala.quoted._
 
 object Test {
   def main(args: Array[String]): Unit = {
-    implicit val toolbox: scala.quoted.Toolbox = scala.quoted.Toolbox.make
+    val tb = Toolbox.make
+    import tb.run
 
-    def powerCode(n: Int, x: Expr[Double]): Expr[Double] =
+    def powerCode(n: Int, x: Expr[Double]): Staged[Double] =
       if (n == 0) '(1.0)
       else if (n == 1) x
       else if (n % 2 == 0) '{ { val y = ~x * ~x; ~powerCode(n / 2, '(y)) } }
       else '{ ~x * ~powerCode(n - 1, x) }
 
-    println(powerCode(0, '(5)).show)
-    println(powerCode(1, '(5)).show)
-    println(powerCode(2, '(5)).show)
-    println(powerCode(3, '(5)).show)
-    println(powerCode(22, '(5)).show)
+    println(run(powerCode(0, '(5)).show.toExpr))
+    println(run(powerCode(1, '(5)).show.toExpr))
+    println(run(powerCode(2, '(5)).show.toExpr))
+    println(run(powerCode(3, '(5)).show.toExpr))
+    println(run(powerCode(22, '(5)).show.toExpr)) // FIXME prin unique names
   }
 }

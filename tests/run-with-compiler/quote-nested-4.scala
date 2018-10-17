@@ -1,13 +1,14 @@
-import quoted._
-import scala.quoted.Toolbox.Default._
+import scala.quoted._
 
 object Test {
   def main(args: Array[String]): Unit = {
-    val q = '{
-      val t = '[String]
-      t
-    }
-
-    println(q.show)
+    val tb = Toolbox.make
+    println(tb.show {
+      val q = '{
+        val t = '[String]
+        t
+      }
+      q
+    })
   }
 }

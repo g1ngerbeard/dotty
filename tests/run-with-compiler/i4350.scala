@@ -1,15 +1,14 @@
-import scala.quoted.Toolbox.Default._
 
-import scala.quoted.Type
+import scala.quoted._
 
 class Foo[T: Type] {
-  def q = '(null.asInstanceOf[T])
+  def q: Staged[T] = '(null.asInstanceOf[T])
 }
 
 object Test {
   def main(args: Array[String]): Unit = {
-    implicit val toolbox: scala.quoted.Toolbox = scala.quoted.Toolbox.make
-    println((new Foo[Object]).q.show)
-    println((new Foo[String]).q.show)
+    val tb = Toolbox.make
+    println(tb.run(new Foo[Object]().q.show.toExpr))
+    println(tb.run(new Foo[String]().q.show.toExpr))
   }
 }

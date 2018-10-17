@@ -10,7 +10,7 @@ import dotty.tools.dotc.core.StdNames._
 import dotty.tools.dotc.core.NameKinds
 import dotty.tools.dotc.core.Mode
 import dotty.tools.dotc.core.Symbols._
-import dotty.tools.dotc.core.Types.Type
+import dotty.tools.dotc.core.Types.{MethodType, Type}
 import dotty.tools.dotc.core.tasty.TreePickler.Hole
 import dotty.tools.dotc.core.tasty.{PositionPickler, TastyPickler, TastyPrinter, TastyString}
 import dotty.tools.dotc.core.tasty.TreeUnpickler.UnpickleMode
@@ -34,40 +34,46 @@ object PickledQuotes {
 
   /** Transform the expression into its fully spliced Tree */
   def quotedExprToTree[T](expr: quoted.Expr[T])(implicit ctx: Context): Tree = expr match {
-    case expr: TastyExpr[_] =>
-      val unpickled = unpickleExpr(expr)
-      val force = new TreeTraverser {
-        def traverse(tree: tpd.Tree)(implicit ctx: Context): Unit = traverseChildren(tree)
-      }
-      force.traverse(unpickled)
-      unpickled
     case expr: LiftedExpr[T] =>
       expr.value match {
         case value: Class[_] => ref(defn.Predef_classOf).appliedToType(classToType(value))
         case value => Literal(Constant(value))
       }
-    case expr: TastyTreeExpr[Tree] @unchecked => healOwner(expr.tree)
+    case expr: TastyTreeExpr[Tree] @unchecked =>
+      if (contextId != expr.ctxId)
+        throw new scala.quoted.QuoteError(
+          """Quote used outside of the `Staging` context where it was defined.
+            |This usualy indicated that a `run` was called within another `run` or a macro.
+          """.stripMargin)
+      healOwner(expr.tree)
     case expr: FunctionAppliedTo[_] =>
       functionAppliedTo(quotedExprToTree(expr.f), expr.args.map(arg => quotedExprToTree(arg)).toList)
   }
 
   /** Transform the expression into its fully spliced TypeTree */
   def quotedTypeToTree(expr: quoted.Type[_])(implicit ctx: Context): Tree = expr match {
-    case expr: TastyType[_] => unpickleType(expr)
     case expr: TaggedType[_] => classTagToTypeTree(expr.ct)
     case expr: TreeType[Tree] @unchecked => healOwner(expr.typeTree)
   }
 
   /** Unpickle the tree contained in the TastyExpr */
-  private def unpickleExpr(expr: TastyExpr[_])(implicit ctx: Context): Tree = {
-    val tastyBytes = TastyString.unpickle(expr.tasty)
-    unpickle(tastyBytes, expr.args, isType = false)(ctx.addMode(Mode.ReadPositions))
+  def unpickleExpr(tasty: scala.runtime.quoted.Unpickler.Pickled, args: Seq[Any])(implicit ctx: Context): Tree = {
+    val tastyBytes = TastyString.unpickle(tasty)
+    val unpickled = unpickle(tastyBytes, args, isType = false)(ctx.addMode(Mode.ReadPositions))
+    force.traverse(unpickled)
+    unpickled
   }
 
   /** Unpickle the tree contained in the TastyType */
-  private def unpickleType(ttpe: TastyType[_])(implicit ctx: Context): Tree = {
-    val tastyBytes = TastyString.unpickle(ttpe.tasty)
-    unpickle(tastyBytes, ttpe.args, isType = true)(ctx.addMode(Mode.ReadPositions))
+  def unpickleType(tasty: scala.runtime.quoted.Unpickler.Pickled, args: Seq[Any])(implicit ctx: Context): Tree = {
+    val tastyBytes = TastyString.unpickle(tasty)
+    val unpickled = unpickle(tastyBytes, args, isType = true)(ctx.addMode(Mode.ReadPositions))
+    force.traverse(unpickled)
+    unpickled
+  }
+
+  private def force = new TreeTraverser {
+    def traverse(tree: tpd.Tree)(implicit ctx: Context): Unit = traverseChildren(tree)
   }
 
   // TASTY picklingtests/pos/quoteTest.scala
@@ -128,26 +134,35 @@ object PickledQuotes {
   }
 
   private def functionAppliedTo(fn: Tree, args: List[Tree])(implicit ctx: Context): Tree = {
-    val argVals = args.map(arg => SyntheticValDef(NameKinds.UniqueName.fresh("x".toTermName), arg))
-    def argRefs() = argVals.map(argVal => ref(argVal.symbol))
-    def rec(fn: Tree): Tree = fn match {
+    def rec(fn: Tree): (List[ValDef], Tree) = fn match {
       case Inlined(call, bindings, expansion) =>
         // this case must go before closureDef to avoid dropping the inline node
-        cpy.Inlined(fn)(call, bindings, rec(expansion))
+        val (argVals, expansion1) = rec(expansion)
+        (argVals, cpy.Inlined(fn)(call, bindings, expansion1))
       case closureDef(ddef) =>
         val paramSyms = ddef.vparamss.head.map(param => param.symbol)
-        val paramToVals = paramSyms.zip(argRefs()).toMap
-        new TreeTypeMap(
+        val argVals = args.map(arg => SyntheticValDef(NameKinds.UniqueName.fresh("x".toTermName), arg))
+        val argRefs = argVals.map(argVal => ref(argVal.symbol))
+        val paramToVals = paramSyms.zip(argRefs).toMap
+        val inlinedRhs = new TreeTypeMap(
           oldOwners = ddef.symbol :: Nil,
           newOwners = ctx.owner :: Nil,
           treeMap = tree => paramToVals.get(tree.symbol).map(_.withPos(tree.pos)).getOrElse(tree)
         ).transform(ddef.rhs)
+        (argVals, inlinedRhs)
       case Block(stats, expr) =>
-        seq(stats, rec(expr))
+        // this case must go after closureDef to avoid skipping the closure block
+        val (argVals, expr1) = rec(expr)
+        (argVals, cpy.Block(fn)(stats, expr1))
       case _ =>
-        fn.select(nme.apply).appliedToArgs(argRefs())
+        val call = fn.tpe.widenDealias match {
+          case _: MethodType => fn
+          case _ => fn.select(nme.apply).withPos(fn.pos)
+        }
+        (Nil, call.appliedToArgs(args).withPos(call.pos))
     }
-    Block(argVals, rec(fn))
+    val (argVals1, expr1) = rec(fn)
+    seq(argVals1, expr1)
   }
 
   private def classToType(clazz: Class[_])(implicit ctx: Context): Type = {
@@ -189,4 +204,12 @@ object PickledQuotes {
       case _ => tree
     }
   }
+
+  /** Id of the current compilation (macros) or Expr[_] run */
+  def contextId(implicit ctx: Context): Int = {
+    def root(ctx: Context): Context =
+      if (ctx.outer != NoContext) root(ctx.outer) else ctx
+    root(ctx).hashCode
+  }
+
 }

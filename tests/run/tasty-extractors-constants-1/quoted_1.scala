@@ -7,13 +7,13 @@ object Macros {
 
   implicit inline def testMacro: Unit = ~impl
 
-  def impl(implicit reflect: Reflection): Expr[Unit] = {
-    import reflect._
+  def impl(implicit staging: StagingContext): Expr[Unit] = {
+    import staging.reflection._
 
     val buff = new StringBuilder
     def stagedPrintln(x: Any): Unit = buff append java.util.Objects.toString(x) append "\n"
 
-    val Constant = new ConstantExtractor(reflect)
+    val Constant = new ConstantExtractor(staging.reflection)
 
     3.toExpr match { case Constant(n) => stagedPrintln(n) }
     '(4) match { case Constant(n) => stagedPrintln(n) }

@@ -38,7 +38,7 @@ trait QuotedOpsImpl extends scala.tasty.reflect.QuotedOps with CoreImpl {
 
       val expanded = etaExpand(term)
       if (expanded.tpe <:< expectedType) {
-        new scala.quoted.Exprs.TastyTreeExpr(expanded).asInstanceOf[scala.quoted.Expr[T]]
+        new scala.quoted.Exprs.TastyTreeExpr(term, PickledQuotes.contextId).asInstanceOf[scala.quoted.Expr[T]]
       } else {
         throw new scala.tasty.TastyTypecheckError(
           s"""Term: ${term.show}

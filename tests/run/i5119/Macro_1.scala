@@ -6,8 +6,8 @@ object Macro {
     inline def ff(args: => Any*): String = ~Macro.impl('(sc), '(args))
   }
   implicit inline def XmlQuote(sc: => StringContext): StringContextOps = new StringContextOps(sc)
-  def impl(sc: Expr[StringContext], args: Expr[Seq[Any]])(implicit reflect: Reflection): Expr[String] = {
-    import reflect._
+  def impl(sc: Expr[StringContext], args: Expr[Seq[Any]])(implicit staging: StagingContext): Expr[String] = {
+    import staging.reflection._
     (sc.unseal.underlyingArgument.show + "\n" + args.unseal.underlyingArgument.show).toExpr
   }
 }

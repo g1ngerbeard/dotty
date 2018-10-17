@@ -7,8 +7,8 @@ object Macros {
   implicit inline def printOwners[T](x: => T): Unit =
     ~impl('(x))
 
-  def impl[T](x: Expr[T])(implicit reflect: Reflection): Expr[Unit] = {
-    import reflect._
+  def impl[T](x: Expr[T])(implicit staging: StagingContext): Expr[Unit] = {
+    import staging.reflection._
 
     val buff = new StringBuilder
 
@@ -38,8 +38,8 @@ object Macros {
     '(print(~buff.result().toExpr))
   }
 
-  def dummyShow(implicit reflect: Reflection): reflect.Printer = {
-    import reflect._
+  def dummyShow(implicit staging: StagingContext): staging.reflection.Printer = {
+    import staging.reflection._
     new Printer {
       def showTree(tree: Tree)(implicit ctx: Context): String = "Tree"
       def showCaseDef(caseDef: CaseDef)(implicit ctx: Context): String = "CaseDef"

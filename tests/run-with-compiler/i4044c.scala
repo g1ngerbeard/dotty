@@ -1,10 +1,10 @@
 import scala.quoted._
-import scala.quoted.Toolbox.Default._
 
 class Foo {
   def foo: Unit = {
-    val q = '{ ~( '{ ~( '{ 5 } ) } ) }
-    println(q.show)
+    def q: Staged[Int] = '{ ~( '{ ~( '{ 5 } ) } ) }
+    val tb = Toolbox.make
+    println(tb.show(q))
   }
 }
 

@@ -2,7 +2,7 @@ package dotty.tools.dotc.core.quoted
 
 import dotty.tools.dotc.ast.Trees.GenericApply
 import dotty.tools.dotc.ast.tpd
-import dotty.tools.dotc.core.Contexts.Context
+import dotty.tools.dotc.core.Contexts._
 import dotty.tools.dotc.core.Types.Type
 import dotty.tools.dotc.transform.SymUtils._
 
@@ -17,4 +17,5 @@ object Quoted {
     case tree: GenericApply[Type] if tree.symbol.isQuote => Some(tree.args.head)
     case _ => None
   }
+
 }

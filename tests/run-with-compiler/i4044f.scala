@@ -1,12 +1,11 @@
 import scala.quoted._
-import scala.quoted.Toolbox.Default._
 
 class Foo {
   def foo: Unit = {
-    val e: Expr[Int] = '(3)
-    val f: Expr[Int] = '(5)
-    def foo(x: Expr[Int], y: Expr[Int]): Expr[Int] = '{ ~x + ~y }
-    val q = '{
+    def e: Staged[Int] = '(3)
+    def f: Staged[Int] = '(5)
+    def foo(x: Expr[Int], y: Expr[Int]): Staged[Int] = '{ ~x + ~y }
+    def q: Staged[Int] = '{
       val e1 = ~e
       val f1 = ~f
       ~{
@@ -14,7 +13,8 @@ class Foo {
         foo('{e1 + ~u}, '(f1))
       }
     }
-    println(q.show)
+    val tb = Toolbox.make
+    println(tb.show(q))
   }
 }
 

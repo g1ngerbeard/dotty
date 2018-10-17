@@ -1,19 +1,17 @@
 
-import scala.quoted.Toolbox.Default._
-
 import scala.quoted._
 
 object Test {
   def main(args: Array[String]): Unit = {
-    implicit val toolbox: scala.quoted.Toolbox = scala.quoted.Toolbox.make
+    val tb = Toolbox.make
 
-    val expr = '{
+    def expr: Staged[Int] = '{
       val a = 3
       println("foo")
       2 + a
     }
-    println(expr.run)
-    println(expr.run)
-    println(expr.show)
+    println(tb.run(expr))
+    println(tb.run(expr))
+    println(tb.show(expr))
   }
 }

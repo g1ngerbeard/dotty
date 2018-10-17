@@ -1,12 +1,10 @@
 import scala.quoted._
-import scala.tasty._
 
 object scalatest {
   inline def assert(condition: => Boolean): Unit = ~assertImpl('(condition))
 
-  def assertImpl(condition: Expr[Boolean])(implicit refl: Reflection): Expr[Unit] = {
-    import refl._
-    import quoted.Toolbox.Default._
+  def assertImpl(condition: Expr[Boolean])(implicit st: StagingContext): Expr[Unit] = {
+    import st.reflection._
 
     val tree = condition.unseal
     def exprStr: String = condition.show

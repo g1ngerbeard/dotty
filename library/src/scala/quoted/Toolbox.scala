@@ -1,19 +1,13 @@
 package scala.quoted
 
-import scala.annotation.implicitNotFound
-
-@implicitNotFound("Could not find implicit quoted.Toolbox.\n\nDefault toolbox can be instantiated with:\n  `implicit val toolbox: scala.quoted.Toolbox = scala.quoted.Toolbox.make`\n\nIf only needed once it can also be imported with:\n `import scala.quoted.Toolbox.Default._`")
 trait Toolbox {
-  def run[T](expr: Expr[T]): T
-  def show[T](expr: Expr[T]): String
+  def run[T](code: Staged[T]): T = runImpl(code)
+  protected def runImpl[T](code: StagingContext => Expr[T]): T // For Scala2 compat in ToolboxImpl
+
+  def show[T](code: Staged[T]): String = runImpl(ctx => { implicit val c: StagingContext = ctx; code(ctx).show.toExpr })
 }
 
 object Toolbox {
-
-  object Default {
-    // TODO remove? It may be better to only have one way to instantiate the toolbox
-    implicit def make(implicit settings: Settings): Toolbox = Toolbox.make
-  }
 
   def make(implicit settings: Settings): Toolbox = {
     val cl = getClass.getClassLoader

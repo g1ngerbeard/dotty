@@ -25,8 +25,3 @@ abstract class Reflection
   def typeOf[T: scala.quoted.Type]: Type =
     implicitly[scala.quoted.Type[T]].unseal.tpe
 }
-
-object Reflection {
-  /** Compiler tasty context available in a top level ~ of an inline macro */
-  def macroContext: Reflection = throw new Exception("Not in inline macro.")
-}

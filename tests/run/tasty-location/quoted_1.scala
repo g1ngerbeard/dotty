@@ -8,8 +8,8 @@ object Location {
 
   implicit inline def location: Location = ~impl
 
-  def impl(implicit reflect: Reflection): Expr[Location] = {
-    import reflect._
+  def impl(implicit staging: StagingContext): Expr[Location] = {
+    import staging.reflection._
 
     def listOwnerNames(sym: Symbol, acc: List[String]): List[String] =
       if (sym == definitions.RootClass || sym == definitions.EmptyPackageClass) acc
@@ -19,8 +19,10 @@ object Location {
     '(new Location(~list.toExpr))
   }
 
-  private implicit def ListIsLiftable[T : Liftable : Type]: Liftable[List[T]] = {
-    case x :: xs  => '{ ~x.toExpr :: ~xs.toExpr }
-    case Nil => '{ List.empty[T] }
+  private implicit def ListIsLiftable[T : Liftable : Type]: Liftable[List[T]] = new Liftable[List[T]] {
+    override def toExpr(x: List[T])(implicit st: StagingContext): Expr[List[T]] = x match {
+      case x :: xs  => '{ ~x.toExpr :: ~xs.toExpr }
+      case Nil => '{ List.empty[T] }
+    }
   }
 }

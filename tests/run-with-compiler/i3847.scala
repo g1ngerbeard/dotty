@@ -1,11 +1,10 @@
-import scala.quoted.Toolbox.Default._
 import scala.quoted._
 import scala.reflect.ClassTag
 
 object Arrays {
   implicit def ArrayIsLiftable[T: Liftable](implicit t: Type[T], ct: Expr[ClassTag[T]]): Liftable[Array[T]] = {
     new Liftable[Array[T]] {
-      def toExpr(arr: Array[T]): Expr[Array[T]] = '{
+      def toExpr(arr: Array[T])(implicit st: StagingContext): Expr[Array[T]] = '{
         new Array[~t](~arr.length.toExpr)(~ct)
         // TODO add elements
       }
@@ -16,8 +15,9 @@ object Arrays {
 object Test {
   def main(args: Array[String]): Unit = {
     import Arrays._
-    implicit val ct: Expr[ClassTag[Int]] = '(ClassTag.Int)
-    val arr: Expr[Array[Int]] = Array[Int](1, 2, 3).toExpr
-    println(arr.show)
+    implicit def ct: Staged[ClassTag[Int]] = '(ClassTag.Int)
+    def arr: Staged[Array[Int]] = Array[Int](1, 2, 3).toExpr
+    val tb = Toolbox.make
+    println(tb.show(arr))
   }
 }

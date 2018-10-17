@@ -1,5 +1,4 @@
 import scala.quoted._
-import scala.tasty.Reflection
 
 import scala.language.implicitConversions
 
@@ -9,8 +8,8 @@ object FQuote {
     inline def ff(args: => Any*): String = ~impl('(this), '(args))
   }
 
-  /*private*/ def impl(receiver: Expr[SCOps], args: Expr[Seq[Any]])(implicit reflect: Reflection): Expr[String] = {
-    import reflect._
+  /*private*/ def impl(receiver: Expr[SCOps], args: Expr[Seq[Any]])(implicit st: StagingContext): Expr[String] = {
+    import st.reflection._
 
     def liftListOfAny(lst: List[Term]): Expr[List[Any]] = lst match {
       case x :: xs  =>

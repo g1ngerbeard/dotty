@@ -1,12 +1,11 @@
 import scala.quoted._
-import scala.tasty._
 
 object Macros {
 
   inline def natConst(x: Int): Int = ~natConstImpl('(x))
 
-  def natConstImpl(x: Expr[Int])(implicit reflection: Reflection): Expr[Int] = {
-    import reflection._
+  def natConstImpl(x: Expr[Int])(implicit st: StagingContext): Expr[Int] = {
+    import st.reflection._
     val xTree: Term = x.unseal
     xTree match {
       case Term.Literal(Constant.Int(n)) =>

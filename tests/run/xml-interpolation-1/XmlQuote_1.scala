@@ -1,5 +1,4 @@
 import scala.quoted._
-import scala.tasty.Reflection
 
 import scala.language.implicitConversions
 
@@ -12,8 +11,8 @@ object XmlQuote {
   }
 
   def impl(receiver: Expr[SCOps], args: Expr[Seq[Any]])
-          (implicit reflect: Reflection): Expr[Xml] = {
-    import reflect._
+          (implicit staging: StagingContext): Expr[Xml] = {
+    import staging.reflection._
     import Term._
 
     def abort(msg: String): Nothing =

@@ -5,8 +5,8 @@ object Macros {
 
   inline def testTypeOf(): Unit = ~testTypeOfImpl
 
-  private def testTypeOfImpl(implicit reflect: Reflection): Expr[Unit] = {
-    import reflect._
+  private def testTypeOfImpl(implicit st: StagingContext): Expr[Unit] = {
+    import st.reflection._
     '{
       assert(~(typeOf[Unit] =:= definitions.UnitType).toExpr, "Unit")
       assert(~(typeOf[Byte] =:= definitions.ByteType).toExpr, "Byte")

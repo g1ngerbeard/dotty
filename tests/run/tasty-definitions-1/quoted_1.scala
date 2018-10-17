@@ -6,8 +6,8 @@ object Macros {
 
   inline def testDefinitions(): Unit = ~testDefinitionsImpl
 
-  def testDefinitionsImpl(implicit reflect: Reflection): Expr[Unit] = {
-    import reflect._
+  def testDefinitionsImpl(implicit staging: StagingContext): Expr[Unit] = {
+    import staging.reflection._
 
     val buff = List.newBuilder[String]
     def printout(x: => String): Unit = {

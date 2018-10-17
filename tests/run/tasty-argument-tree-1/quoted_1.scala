@@ -5,8 +5,8 @@ object Macros {
 
   inline def inspect[T](x: T): Unit = ~impl('(x))
 
-  def impl[T](x: Expr[T])(implicit reflect: Reflection): Expr[Unit] = {
-    import reflect._
+  def impl[T](x: Expr[T])(implicit st: StagingContext): Expr[Unit] = {
+    import st.reflection._
     val tree = x.unseal
     '{
       println()

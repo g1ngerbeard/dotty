@@ -2,48 +2,40 @@ import scala.annotation.tailrec
 import scala.quoted._
 
 object Test {
-  implicit val toolbox: scala.quoted.Toolbox = scala.quoted.Toolbox.make
+  val tb = Toolbox.make
 
   def main(args: Array[String]): Unit = {
-    val code1 = '{ (arr: Array[Int], f: Int => Unit) => ~foreach1('(arr), '(f)) }
-    println(code1.show)
+    println(tb.show('{ (arr: Array[Int], f: Int => Unit) => ~foreach1('(arr), '(f)) }))
     println()
 
-    val code1Tpe = '{ (arr: Array[String], f: String => Unit) => ~foreach1Tpe1('(arr), '(f)) }
-    println(code1Tpe.show)
+    println(tb.show('{ (arr: Array[String], f: String => Unit) => ~foreach1Tpe1('(arr), '(f)) }))
     println()
 
-    val code1Tpe2 = '{ (arr: Array[String], f: String => Unit) => ~foreach1Tpe1('(arr), '(f)) }
-    println(code1Tpe2.show)
+    println(tb.show('{ (arr: Array[String], f: String => Unit) => ~foreach1Tpe1('(arr), '(f)) }))
     println()
 
-    val code2 = '{ (arr: Array[Int]) => ~foreach1('(arr), '(i => System.out.println(i))) }
-    println(code2.show)
+    println(tb.show('{ (arr: Array[Int]) => ~foreach1('(arr), '(i => System.out.println(i))) }))
     println()
 
-    val code3 = '{ (arr: Array[Int], f: Int => Unit) => ~foreach3('(arr), '(f)) }
-    println(code3.show)
+    println(tb.show('{ (arr: Array[Int], f: Int => Unit) => ~foreach3('(arr), '(f)) }))
     println()
 
-    val code4 = '{ (arr: Array[Int], f: Int => Unit) => ~foreach4('(arr), '(f), 4) }
-    println(code4.show)
+    println(tb.show('{ (arr: Array[Int], f: Int => Unit) => ~foreach4('(arr), '(f), 4) }))
     println()
 
-    val liftedArray = Array(1, 2, 3, 4).toExpr
-    println(liftedArray.show)
+    println(tb.show(Array(1, 2, 3, 4).toExpr))
     println()
 
-
-    def printAll(arr: Array[Int]) = '{
+    def printAll(arr: Array[Int]): Staged[Unit] = '{
       val arr1 = ~arr.toExpr
       ~foreach1('(arr1), '(x => println(x)))
     }
 
-    println(printAll(Array(1, 3, 4, 5)).show)
+    println(tb.show(printAll(Array(1, 3, 4, 5))))
 
   }
 
-  def foreach1(arrRef: Expr[Array[Int]], f: Expr[Int => Unit]): Expr[Unit] = '{
+  def foreach1(arrRef: Expr[Array[Int]], f: Expr[Int => Unit]): Staged[Unit] = '{
     val size = (~arrRef).length
     var i = 0
     while (i < size) {
@@ -53,7 +45,7 @@ object Test {
     }
   }
 
-  def foreach1Tpe1[T](arrRef: Expr[Array[T]], f: Expr[T => Unit])(implicit t: Type[T]): Expr[Unit] = '{
+  def foreach1Tpe1[T](arrRef: Expr[Array[T]], f: Expr[T => Unit])(implicit t: Type[T]): Staged[Unit] = '{
     val size = (~arrRef).length
     var i = 0
     while (i < size) {
@@ -63,7 +55,7 @@ object Test {
     }
   }
 
-  def foreach1Tpe2[T: Type](arrRef: Expr[Array[T]], f: Expr[T => Unit]): Expr[Unit] = '{
+  def foreach1Tpe2[T: Type](arrRef: Expr[Array[T]], f: Expr[T => Unit]): Staged[Unit] = '{
     val size = (~arrRef).length
     var i = 0
     while (i < size) {
@@ -73,7 +65,7 @@ object Test {
     }
   }
 
-  def foreach2(arrRef: Expr[Array[Int]], f: Expr[Int => Unit]): Expr[Unit] = '{
+  def foreach2(arrRef: Expr[Array[Int]], f: Expr[Int => Unit]): Staged[Unit] = '{
     val size = (~arrRef).length
     var i = 0
     while (i < size) {
@@ -83,7 +75,7 @@ object Test {
     }
   }
 
-  def foreach3(arrRef: Expr[Array[Int]], f: Expr[Int => Unit]): Expr[Unit] = '{
+  def foreach3(arrRef: Expr[Array[Int]], f: Expr[Int => Unit]): Staged[Unit] = '{
     val size = (~arrRef).length
     var i = 0
     if (size % 3 != 0) throw new Exception("...")// for simplicity of the implementation
@@ -95,7 +87,7 @@ object Test {
     }
   }
 
-  def foreach3_2(arrRef: Expr[Array[Int]], f: Expr[Int => Unit]): Expr[Unit] = '{
+  def foreach3_2(arrRef: Expr[Array[Int]], f: Expr[Int => Unit]): Staged[Unit] = '{
     val size = (~arrRef).length
     var i = 0
     if (size % 3 != 0) throw new Exception("...")// for simplicity of the implementation
@@ -107,7 +99,7 @@ object Test {
     }
   }
 
-  def foreach4(arrRef: Expr[Array[Int]], f: Expr[Int => Unit], unrollSize: Int): Expr[Unit] = '{
+  def foreach4(arrRef: Expr[Array[Int]], f: Expr[Int => Unit], unrollSize: Int): Staged[Unit] = '{
     val size = (~arrRef).length
     var i = 0
     if (size % ~unrollSize.toExpr != 0) throw new Exception("...") // for simplicity of the implementation
@@ -118,14 +110,14 @@ object Test {
   }
 
   implicit object ArrayIntIsLiftable extends Liftable[Array[Int]] {
-    override def toExpr(x: Array[Int]): Expr[Array[Int]] = '{
+    override def toExpr(x: Array[Int])(implicit st: StagingContext): Expr[Array[Int]] = '{
       val array = new Array[Int](~x.length.toExpr)
       ~foreachInRange(0, x.length)(i => '{ array(~i.toExpr) = ~x(i).toExpr})
       array
     }
   }
 
-  def foreachInRange(start: Int, end: Int)(f: Int => Expr[Unit]): Expr[Unit] = {
+  def foreachInRange(start: Int, end: Int)(f: Int => Expr[Unit]): Staged[Unit] = {
     @tailrec def unroll(i: Int, acc: Expr[Unit]): Expr[Unit] =
       if (i < end) unroll(i + 1, '{ ~acc; ~f(i) }) else acc
     if (start < end) unroll(start + 1, f(start)) else '()

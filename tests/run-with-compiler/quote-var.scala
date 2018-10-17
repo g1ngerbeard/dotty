@@ -3,24 +3,24 @@ import scala.quoted._
 object Test {
 
   sealed trait Var {
-    def get: Expr[String]
-    def update(x: Expr[String]): Expr[Unit]
+    def get: Staged[String]
+    def update(x: Expr[String]): Staged[Unit]
   }
 
   object Var {
-    def apply(init: Expr[String])(body: Var => Expr[String]): Expr[String] = '{
+    def apply(init: Expr[String])(body: Var => Expr[String]): Staged[String] = '{
       var x = ~init
       ~body(
         new Var {
-          def get: Expr[String] = '(x)
-          def update(e: Expr[String]): Expr[Unit] = '{ x = ~e }
+          def get: Staged[String] = '(x)
+          def update(e: Expr[String]): Staged[Unit] = '{ x = ~e }
         }
       )
     }
   }
 
 
-  def test1(): Expr[String] = Var('("abc")) { x =>
+  def test1(): Staged[String] = Var('("abc")) { x =>
     '{
       ~x.update('("xyz"))
       ~x.get
@@ -28,9 +28,9 @@ object Test {
   }
 
   def main(args: Array[String]): Unit = {
-    implicit val toolbox: scala.quoted.Toolbox = scala.quoted.Toolbox.make
+    val tb: Toolbox = scala.quoted.Toolbox.make
 
-    println(test1().run)
+    println(tb.run(test1()))
   }
 }
 
