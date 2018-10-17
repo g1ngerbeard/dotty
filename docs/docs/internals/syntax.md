@@ -341,11 +341,16 @@ DefDef            ::=  DefSig [(‘:’ | ‘<:’) Type] ‘=’ Expr          
 TmplDef           ::=  ([‘case’] ‘class’ | ‘trait’) ClassDef
                     |  [‘case’] ‘object’ ObjectDef
                     |  ‘enum’ EnumDef
+                    |  ‘witness’ WitnessDef
 ClassDef          ::=  id ClassConstr TemplateOpt                               ClassDef(mods, name, tparams, templ)
 ClassConstr       ::=  [ClsTypeParamClause] [ConstrMods] ClsParamClauses         with DefDef(_, <init>, Nil, vparamss, EmptyTree, EmptyTree) as first stat
 ConstrMods        ::=  {Annotation} [AccessModifier]
 ObjectDef         ::=  id TemplateOpt                                           ModuleDef(mods, name, template)  // no constructor
 EnumDef           ::=  id ClassConstr [‘extends’ [ConstrApps]] EnumBody         EnumDef(mods, name, tparams, template)
+WitnessDef        ::=  [id] [DefTypeParamClause] DefParamClauses
+                       [‘for’ [ConstrApps]] TemplateBody
+                    |  id [DefTypeParamClause] DefParamClauses
+                       [‘for’ Type] [‘=’ Expr]
 TemplateOpt       ::=  [‘extends’ Template | [nl] TemplateBody]
 Template          ::=  ConstrApps [TemplateBody] | TemplateBody                 Template(constr, parents, self, stats)
 ConstrApps        ::=  ConstrApp {‘with’ ConstrApp}
