@@ -55,7 +55,7 @@ object untpd extends Trees.Instance[Untyped] with UntypedTreeInfo {
     override def isType: Boolean = body.isType
   }
 
-  /** A function type with `implicit` or `erased` modifiers */
+  /** A function type with `implicit`, `erased`, or `contextual` modifiers */
   class FunctionWithMods(args: List[Tree], body: Tree, val mods: Modifiers) extends Function(args, body)
 
   /** A function created from a wildcard expression

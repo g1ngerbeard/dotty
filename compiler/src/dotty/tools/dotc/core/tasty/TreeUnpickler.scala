@@ -352,10 +352,14 @@ class TreeUnpickler(reader: TastyReader,
               readMethodic(PolyType, _.toTypeName)
             case METHODtype =>
               readMethodic(MethodType, _.toTermName)
-            case IMPLICITMETHODtype =>
-              readMethodic(ImplicitMethodType, _.toTermName)
             case ERASEDMETHODtype =>
               readMethodic(ErasedMethodType, _.toTermName)
+            case CONTEXTUALMETHODtype =>
+              readMethodic(ContextualMethodType, _.toTermName)
+            case ERASEDCONTEXTUALMETHODtype =>
+              readMethodic(ErasedContextualMethodType, _.toTermName)
+            case IMPLICITMETHODtype =>
+              readMethodic(ImplicitMethodType, _.toTermName)
             case ERASEDIMPLICITMETHODtype =>
               readMethodic(ErasedImplicitMethodType, _.toTermName)
             case TYPELAMBDAtype =>
@@ -630,6 +634,7 @@ class TreeUnpickler(reader: TastyReader,
           case DEFAULTparameterized => addFlag(DefaultParameterized)
           case STABLE => addFlag(Stable)
           case EXTENSION => addFlag(Extension)
+          case CONTEXTUAL => addFlag(Contextual)
           case PARAMsetter =>
             addFlag(ParamAccessor)
           case PRIVATEqualified =>

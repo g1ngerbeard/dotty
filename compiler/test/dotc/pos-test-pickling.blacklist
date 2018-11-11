@@ -17,6 +17,7 @@ phantom-Eq2
 power-macro
 quote-lift-inline-params
 quote-nested-object
+reference
 scala2traits
 sepComp
 seqtype-cycle
