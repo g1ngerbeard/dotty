@@ -951,7 +951,7 @@ object Trees {
 
     @sharable val EmptyTree: Thicket = genericEmptyTree
     @sharable val EmptyValDef: ValDef = genericEmptyValDef
-    @sharable val ImplicitEmptyTree: Thicket = Thicket(Nil) // an empty tree marking an implicit closure
+    @sharable val ContextualEmptyTree: Thicket = Thicket(Nil) // an empty tree marking a contextual closure
 
     // ----- Auxiliary creation methods ------------------
 

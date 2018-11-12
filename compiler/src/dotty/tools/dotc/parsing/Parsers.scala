@@ -357,15 +357,15 @@ object Parsers {
 
     /** Convert tree to formal parameter list
     */
-    def convertToParams(tree: Tree): List[ValDef] = tree match {
-      case Parens(t)  => convertToParam(t) :: Nil
-      case Tuple(ts)  => ts map (convertToParam(_))
-      case t          => convertToParam(t) :: Nil
+    def convertToParams(tree: Tree, mods: Modifiers): List[ValDef] = tree match {
+      case Parens(t)  => convertToParam(t, mods) :: Nil
+      case Tuple(ts)  => ts map (convertToParam(_, mods))
+      case t          => convertToParam(t, mods) :: Nil
     }
 
     /** Convert tree to formal parameter
     */
-    def convertToParam(tree: Tree, mods: Modifiers = Modifiers(), expected: String = "formal parameter"): ValDef = tree match {
+    def convertToParam(tree: Tree, mods: Modifiers, expected: String = "formal parameter"): ValDef = tree match {
       case Ident(name) =>
         makeParameter(name.asTermName, TypeTree(), mods) withPos tree.pos
       case Typed(Ident(name), tpt) =>
@@ -751,7 +751,7 @@ object Parsers {
      */
     def toplevelTyp(): Tree = checkWildcard(typ())
 
-    /** Type        ::=  [FunArgMods] FunArgTypes `=>' Type
+    /** Type        ::=  [‘erased’] FunArgTypes (‘=>’ | ‘|=>’) Type
      *                |  HkTypeParamClause `->' Type
      *                |  InfixType
      *  FunArgTypes ::=  InfixType
@@ -760,11 +760,20 @@ object Parsers {
      */
     def typ(): Tree = {
       val start = in.offset
-      val imods = modifiers(funArgMods)
+      val imods = modifiers(BitSet(ERASED))
       def functionRest(params: List[Tree]): Tree =
-        atPos(start, accept(ARROW)) {
+        atPos(start, in.offset) {
+          val pmods =
+            if (in.token == CARROW) {
+              in.nextToken()
+              imods | (Contextual | Implicit)
+            }
+            else {
+              accept(ARROW)
+              imods
+            }
           val t = typ()
-          if (imods.is(Implicit) || imods.is(Erased)) new FunctionWithMods(params, t, imods)
+          if (pmods.flags.is(Implicit | Contextual | Erased)) new FunctionWithMods(params, t, pmods)
           else Function(params, t)
         }
       def funArgTypesRest(first: Tree, following: () => Tree) = {
@@ -798,7 +807,8 @@ object Parsers {
             }
             openParens.change(LPAREN, -1)
             accept(RPAREN)
-            if (imods.is(Implicit) || isValParamList || in.token == ARROW) functionRest(ts)
+            if (imods.is(Implicit) || isValParamList || in.token == ARROW || in.token == CARROW)
+              functionRest(ts)
             else {
               val ts1 =
                 for (t <- ts) yield {
@@ -829,7 +839,7 @@ object Parsers {
         else infixType()
 
       in.token match {
-        case ARROW => functionRest(t :: Nil)
+        case ARROW | CARROW => functionRest(t :: Nil)
         case MATCH => matchType(EmptyTree, t)
         case FORSOME => syntaxError(ExistentialTypesNoLongerSupported()); t
         case _ =>
@@ -1106,6 +1116,7 @@ object Parsers {
     }
 
     /** Expr              ::=  [FunArgMods] FunParams =>' Expr
+     *                      |  [‘erased’] FunParams ‘|=>’ Expr
      *                      |  Expr1
      *  FunParams         ::=  Bindings
      *                      |  id
@@ -1155,9 +1166,11 @@ object Parsers {
         finally placeholderParams = saved
 
         val t = expr1(location)
-        if (in.token == ARROW) {
+        if (in.token == ARROW || in.token == CARROW) {
           placeholderParams = Nil // don't interpret `_' to the left of `=>` as placeholder
-          wrapPlaceholders(closureRest(start, location, convertToParams(t)))
+          val impliedMods =
+            if (in.token == CARROW) Modifiers(Implicit | Contextual) else EmptyModifiers
+          wrapPlaceholders(closureRest(start, location, convertToParams(t, impliedMods)))
         }
         else if (isWildcard(t)) {
           placeholderParams = placeholderParams ::: saved
@@ -1375,7 +1388,8 @@ object Parsers {
       }
       else ident()
 
-    /** Expr         ::= implicit id `=>' Expr
+    /** Expr         ::= FunArgMods FunParams `=>' Expr
+     *                 | [‘erased’] FunParams ‘|=>’ Expr
      *  BlockResult  ::= implicit id [`:' InfixType] `=>' Block // Scala2 only
      */
     def implicitClosure(start: Int, location: Location.Value, implicitMods: Modifiers): Tree =
@@ -1383,8 +1397,19 @@ object Parsers {
 
     def closureRest(start: Int, location: Location.Value, params: List[Tree]): Tree =
       atPos(start, in.offset) {
-        accept(ARROW)
-        Function(params, if (location == Location.InBlock) block() else expr())
+        val params1 =
+          if (in.token == CARROW) {
+            in.nextToken()
+            params.map {
+              case param: ValDef => param.withMods(param.mods | (Implicit | Contextual))
+              case param => param
+            }
+          }
+          else {
+            accept(ARROW)
+            params
+          }
+        Function(params1, if (location == Location.InBlock) block() else expr())
       }
 
     /** PostfixExpr   ::= InfixExpr [id [nl]]

@@ -156,11 +156,11 @@ object desugar {
     else vdef
   }
 
-  def makeImplicitParameters(tpts: List[Tree], forPrimaryConstructor: Boolean = false)(implicit ctx: Context): List[ValDef] =
+  def makeImplicitParameters(tpts: List[Tree], contextualFlag: FlagSet = EmptyFlags, forPrimaryConstructor: Boolean = false)(implicit ctx: Context): List[ValDef] =
     for (tpt <- tpts) yield {
        val paramFlags: FlagSet = if (forPrimaryConstructor) PrivateLocalParamAccessor else Param
        val epname = EvidenceParamName.fresh()
-       ValDef(epname, tpt, EmptyTree).withFlags(paramFlags | Implicit)
+       ValDef(epname, tpt, EmptyTree).withFlags(paramFlags | Implicit | contextualFlag)
     }
 
   /** 1. Expand context bounds to evidence params. E.g.,
@@ -195,7 +195,7 @@ object desugar {
     val epbuf = new ListBuffer[ValDef]
     def desugarContextBounds(rhs: Tree): Tree = rhs match {
       case ContextBounds(tbounds, cxbounds) =>
-        epbuf ++= makeImplicitParameters(cxbounds, isPrimaryConstructor)
+        epbuf ++= makeImplicitParameters(cxbounds, forPrimaryConstructor = isPrimaryConstructor)
         tbounds
       case LambdaTypeTree(tparams, body) =>
         cpy.LambdaTypeTree(rhs)(tparams, desugarContextBounds(body))
@@ -968,10 +968,10 @@ object desugar {
    *      def $anonfun(params) = body
    *      Closure($anonfun)
    */
-  def makeClosure(params: List[ValDef], body: Tree, tpt: Tree = TypeTree(), isImplicit: Boolean)(implicit ctx: Context): Block =
+  def makeClosure(params: List[ValDef], body: Tree, tpt: Tree = TypeTree(), isContextual: Boolean)(implicit ctx: Context): Block =
     Block(
       DefDef(nme.ANON_FUN, Nil, params :: Nil, tpt, body).withMods(synthetic | Artifact),
-      Closure(Nil, Ident(nme.ANON_FUN), if (isImplicit) ImplicitEmptyTree else EmptyTree))
+      Closure(Nil, Ident(nme.ANON_FUN), if (isContextual) ContextualEmptyTree else EmptyTree))
 
   /** If `nparams` == 1, expand partial function
    *
@@ -1024,9 +1024,9 @@ object desugar {
     Function(param :: Nil, Block(vdefs, body))
   }
 
-  def makeImplicitFunction(formals: List[Type], body: Tree)(implicit ctx: Context): Tree = {
-    val params = makeImplicitParameters(formals.map(TypeTree))
-    new FunctionWithMods(params, body, Modifiers(Implicit))
+  def makeContextualFunction(formals: List[Type], body: Tree)(implicit ctx: Context): Tree = {
+    val params = makeImplicitParameters(formals.map(TypeTree), Contextual)
+    new FunctionWithMods(params, body, Modifiers(Implicit | Contextual))
   }
 
   /** Add annotation to tree:
