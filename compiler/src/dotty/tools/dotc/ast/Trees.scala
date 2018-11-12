@@ -444,6 +444,8 @@ object Trees {
   case class Apply[-T >: Untyped] private[ast] (fun: Tree[T], args: List[Tree[T]])
     extends GenericApply[T] {
     type ThisTree[-T >: Untyped] = Apply[T]
+
+    def isContextual = getAttachment(untpd.WithApply).nonEmpty
   }
 
   /** fun[args] */
