@@ -75,12 +75,12 @@ trait TypeOrBoundsTreesOpsImpl extends scala.tasty.reflect.TypeOrBoundsTreeOps w
     def body(implicit ctx: Contexts.Context): TypeOrBoundsTree = x.body
   }
 
-  def BindDeco(x: Bind): TypeTree.BindAPI = new TypeTree.BindAPI {
+  def TypeBindDeco(x: TypeTree.TypeBind): TypeTree.TypeBindAPI = new TypeTree.TypeBindAPI {
     def name(implicit ctx: Contexts.Context): String = x.name.toString
     def body(implicit ctx: Contexts.Context): TypeOrBoundsTree = x.body
   }
 
-  def TypeBlockDeco(x: TypeTree.Block): TypeTree.BlockAPI = new TypeTree.BlockAPI {
+  def TypeBlockDeco(x: TypeTree.TypeBlock): TypeTree.TypeBlockAPI = new TypeTree.TypeBlockAPI {
     def aliases(implicit ctx: Contexts.Context): List[TypeDef] = x.stats.map { case alias: TypeDef => alias }
     def tpt(implicit ctx: Contexts.Context): TypeTree = x.expr
   }
@@ -94,10 +94,15 @@ trait TypeOrBoundsTreesOpsImpl extends scala.tasty.reflect.TypeOrBoundsTreeOps w
   // ----- TypeTrees ------------------------------------------------
 
   object IsTypeTree extends IsTypeTreeModule {
-    def unapply(x: TypeOrBoundsTree)(implicit ctx: Context): Option[TypeTree] =
-      if (x.isType) Some(x) else None
-    def unapply(termOrTypeTree: TermOrTypeTree)(implicit ctx: Context, dummy: DummyImplicit): Option[TypeTree] =
-      if (termOrTypeTree.isType) Some(termOrTypeTree) else None
+    def unapply(x: TypeOrBoundsTree)(implicit ctx: Context): Option[TypeTree] = x match {
+      case x: tpd.TypeBoundsTree => None
+      case _ => if (x.isType) Some(x) else None
+    }
+
+    def unapply(termOrTypeTree: TermOrTypeTree)(implicit ctx: Context, dummy: DummyImplicit): Option[TypeTree] = termOrTypeTree match {
+      case _: tpd.TypeBoundsTree => None
+      case _ => if (termOrTypeTree.isType) Some(termOrTypeTree) else None
+    }
   }
 
   object TypeTree extends TypeTreeModule with TypeTreeCoreModuleImpl {
@@ -284,29 +289,29 @@ trait TypeOrBoundsTreesOpsImpl extends scala.tasty.reflect.TypeOrBoundsTreeOps w
       }
     }
 
-    object IsBind extends IsBindModule {
-      def unapply(tpt: TypeOrBoundsTree)(implicit ctx: Context): Option[Bind] = tpt match {
+    object IsTypeBind extends IsTypeBindModule {
+      def unapply(tpt: TypeOrBoundsTree)(implicit ctx: Context): Option[TypeBind] = tpt match {
         case tpt: tpd.Bind if tpt.name.isTypeName => Some(tpt)
         case _ => None
       }
     }
 
-    object Bind extends BindModule {
+    object TypeBind extends TypeBindModule {
       def unapply(x: TypeTree)(implicit ctx: Context): Option[(String, TypeOrBoundsTree)] = x match {
         case x: tpd.Bind if x.name.isTypeName => Some((x.name.toString, x.body))
         case _ => None
       }
     }
 
-    object IsBlock extends IsBlockModule {
-      def unapply(tpt: TypeOrBoundsTree)(implicit ctx: Context): Option[Block] = tpt match {
+    object IsTypeBlock extends IsTypeBlockModule {
+      def unapply(tpt: TypeOrBoundsTree)(implicit ctx: Context): Option[TypeBlock] = tpt match {
         case tpt: tpd.Block => Some(tpt)
         case _ => None
       }
     }
 
 
-    object Block extends BlockModule {
+    object TypeBlock extends TypeBlockModule {
       def unapply(x: TypeTree)(implicit ctx: Context): Option[(List[TypeDef], TypeTree)] = x match {
         case x: tpd.Block => Some((x.stats.map { case alias: TypeDef => alias }, x.expr))
         case _ => None

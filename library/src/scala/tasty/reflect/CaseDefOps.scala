@@ -13,6 +13,11 @@ trait CaseDefOps extends Core {
 
   val CaseDef: CaseDefModule
   abstract class CaseDefModule {
+
+    def apply(pat: Pattern, guard: Option[Term], body: Term)(implicit ctx: Context): CaseDef
+
+    def copy(original: CaseDef)(pat: Pattern, guard: Option[Term], body: Term)(implicit ctx: Context): CaseDef
+
     def unapply(x: CaseDef): Option[(Pattern, Option[Term], Term)]
   }
 

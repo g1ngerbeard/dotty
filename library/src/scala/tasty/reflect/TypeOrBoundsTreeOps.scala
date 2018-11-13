@@ -19,8 +19,8 @@ trait TypeOrBoundsTreeOps extends Core {
   implicit def MatchTypeTreeDeco(x: TypeTree.MatchType): TypeTree.MatchTypeAPI
   implicit def ByNameDeco(x: TypeTree.ByName): TypeTree.ByNameAPI
   implicit def LambdaTypeTreeDeco(x: TypeTree.LambdaTypeTree): TypeTree.LambdaTypeTreeAPI
-  implicit def BindDeco(x: TypeTree.Bind): TypeTree.BindAPI
-  implicit def TypeBlockDeco(x: TypeTree.Block): TypeTree.BlockAPI
+  implicit def TypeBindDeco(x: TypeTree.TypeBind): TypeTree.TypeBindAPI
+  implicit def TypeBlockDeco(x: TypeTree.TypeBlock): TypeTree.TypeBlockAPI
 
   implicit def TypeBoundsTreeDeco(tpt: TypeBoundsTree): TypeBoundsTreeAPI
 
@@ -255,35 +255,35 @@ trait TypeOrBoundsTreeOps extends Core {
       def unapply(typeOrBoundsTree: TypeOrBoundsTree)(implicit ctx: Context): Option[(List[TypeDef], TypeOrBoundsTree)]
     }
 
-    val IsBind: IsBindModule
-    abstract class IsBindModule {
-      /** Matches any Bind and returns it */
-      def unapply(tpt: TypeOrBoundsTree)(implicit ctx: Context): Option[Bind]
+    val IsTypeBind: IsTypeBindModule
+    abstract class IsTypeBindModule {
+      /** Matches any TypeBind and returns it */
+      def unapply(tpt: TypeOrBoundsTree)(implicit ctx: Context): Option[TypeBind]
     }
 
-    trait BindAPI {
+    trait TypeBindAPI {
       def name(implicit ctx: Context): String
       def body(implicit ctx: Context): TypeOrBoundsTree
     }
 
-    val Bind: BindModule
-    abstract class BindModule {
+    val TypeBind: TypeBindModule
+    abstract class TypeBindModule {
       def unapply(typeOrBoundsTree: TypeOrBoundsTree)(implicit ctx: Context): Option[(String, TypeOrBoundsTree)]
     }
 
-    val IsBlock: IsBlockModule
-    abstract class IsBlockModule {
-      /** Matches any Block and returns it */
-      def unapply(tpt: TypeOrBoundsTree)(implicit ctx: Context): Option[Block]
+    val IsTypeBlock: IsTypeBlockModule
+    abstract class IsTypeBlockModule {
+      /** Matches any TypeBlock and returns it */
+      def unapply(tpt: TypeOrBoundsTree)(implicit ctx: Context): Option[TypeBlock]
     }
 
-    trait BlockAPI {
+    trait TypeBlockAPI {
       def aliases(implicit ctx: Context): List[TypeDef]
       def tpt(implicit ctx: Context): TypeTree
     }
 
-    val Block: BlockModule
-    abstract class BlockModule {
+    val TypeBlock: TypeBlockModule
+    abstract class TypeBlockModule {
       def unapply(typeOrBoundsTree: TypeOrBoundsTree)(implicit ctx: Context): Option[(List[TypeDef], TypeTree)]
     }
   }

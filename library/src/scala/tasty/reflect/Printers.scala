@@ -184,10 +184,10 @@ trait Printers
           this += "TypeTree.Annotated(" += arg += ", " += annot += ")"
         case TypeTree.LambdaTypeTree(tparams, body) =>
           this += "TypeTree.LambdaTypeTree(" ++= tparams += ", " += body += ")"
-        case TypeTree.Bind(name, bounds) =>
-          this += "TypeTree.Bind(" += name += ", " += bounds += ")"
-        case TypeTree.Block(aliases, tpt) =>
-          this += "TypeTree.Block(" ++= aliases += ", " += tpt += ")"
+        case TypeTree.TypeBind(name, bounds) =>
+          this += "TypeTree.TypeBind(" += name += ", " += bounds += ")"
+        case TypeTree.TypeBlock(aliases, tpt) =>
+          this += "TypeTree.TypeBlock(" ++= aliases += ", " += tpt += ")"
         case TypeBoundsTree(lo, hi) =>
           this += "TypeBoundsTree(" += lo += ", " += hi += ")"
         case WildcardTypeTree() =>
@@ -213,7 +213,7 @@ trait Printers
           this += "Pattern.Bind(\"" += name += "\", " += body += ")"
         case Pattern.Unapply(fun, implicits, patterns) =>
           this += "Pattern.Unapply(" += fun += ", " ++= implicits += ", " ++= patterns += ")"
-        case Pattern.Alternative(patterns) =>
+        case Pattern.Alternatives(patterns) =>
           this += "Pattern.Alternative(" ++= patterns += ")"
         case Pattern.TypeTest(tpt) =>
           this += "Pattern.TypeTest(" += tpt += ")"
@@ -1203,7 +1203,7 @@ trait Printers
           }
           inParens(printPatterns(patterns, ", "))
 
-        case Pattern.Alternative(trees) =>
+        case Pattern.Alternatives(trees) =>
           inParens(printPatterns(trees, " | "))
 
         case Pattern.TypeTest(tpt) =>
@@ -1325,10 +1325,10 @@ trait Printers
           this += highlightTypeDef(" => ", color)
           printTypeOrBoundsTree(body)
 
-        case TypeTree.Bind(name, _) =>
+        case TypeTree.TypeBind(name, _) =>
           this += highlightTypeDef(name, color)
 
-        case TypeTree.Block(aliases, tpt) =>
+        case TypeTree.TypeBlock(aliases, tpt) =>
           inBlock {
             printTrees(aliases, lineBreak())
             printTypeTree(tpt)
