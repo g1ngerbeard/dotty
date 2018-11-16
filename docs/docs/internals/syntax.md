@@ -351,8 +351,9 @@ ObjectDef         ::=  id TemplateOpt                                           
 EnumDef           ::=  id ClassConstr [‘extends’ [ConstrApps]] EnumBody         EnumDef(mods, name, tparams, template)
 WitnessDef        ::=  [id] WitnessParams [‘for’ ConstrApps] [TemplateBody]
                     |  id WitnessParams ‘:’ Type ‘=’ Expr
+                    |  id ‘:’ ‘=>’ Type ‘=’ Expr
                     |  id ‘=’ Expr
-WitnessParams     ::=  [DefTypeParamClause] {‘with’ ‘(’ [DefParams] ‘)}
+WitnessParams     ::=  [DefTypeParamClause] {‘with’ ‘(’ [DefParams] ‘)'}
 TemplateOpt       ::=  [‘extends’ Template | [nl] TemplateBody]
 Template          ::=  ConstrApps [TemplateBody] | TemplateBody                 Template(constr, parents, self, stats)
 ConstrApps        ::=  ConstrApp {‘with’ ConstrApp}

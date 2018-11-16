@@ -40,4 +40,6 @@ object DottyPredef {
   @forceInline final def implicitly[T](implicit ev: T): T = ev
 
   @forceInline def locally[T](body: => T): T = body
+
+  @forceInline def summon[T](implicit x: T) = x
 }
