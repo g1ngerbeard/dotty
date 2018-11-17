@@ -17,7 +17,7 @@ object Printers {
   val checks: Printer = noPrinter
   val config: Printer = noPrinter
   val cyclicErrors: Printer = noPrinter
-  val debug = noPrinter
+  val debug = noPrinter      // no type annotion here to force inlining
   val dottydoc: Printer = noPrinter
   val exhaustivity: Printer = noPrinter
   val gadts: Printer = noPrinter
