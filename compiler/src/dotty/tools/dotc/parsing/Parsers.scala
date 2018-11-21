@@ -2111,7 +2111,11 @@ object Parsers {
           else EmptyModifiers
         newLineOptWhenFollowedBy(LPAREN)
         if (impliedMods.is(Contextual) || in.token == LPAREN && !ofWitness) {
-          val params = paramClause(ofClass, ofCaseClass, false, firstClause, impliedMods)
+          val params = paramClause(
+              ofClass = ofClass,
+              ofCaseClass = ofCaseClass,
+              firstClause = firstClause,
+              impliedMods = impliedMods)
           val lastClause =
             params.nonEmpty && params.head.mods.flags.is(Implicit, butNot = Contextual)
           params :: (if (lastClause) Nil else recur(firstClause = false))
@@ -2556,22 +2560,6 @@ object Parsers {
       val t = checkWildcard(annotType(), fallbackTree = Ident(nme.ERROR))
       if (in.token == LPAREN) parArgumentExprss(wrapNew(t))
       else t
-    }
-
-    def constrAppsToType(apps: List[Tree]): Tree = {
-      def constrType(app: Tree): Tree = app match {
-        case Apply(app1, _) =>
-          syntaxError(i"illegal type of witness alias: $app", app.pos)
-          constrType(app1)
-        case Select(app1, nme.CONSTRUCTOR) => constrType(app1)
-        case New(app1) => app1
-        case _ => TypeTree()
-      }
-      if (apps.isEmpty) TypeTree()
-      else {
-        val tpes = apps.map(constrType)
-        tpes.filterNot(_.isInstanceOf[TypeTree]).reduce(AndTypeTree)
-      }
     }
 
     /** Template          ::=  ConstrApps [TemplateBody] | TemplateBody
