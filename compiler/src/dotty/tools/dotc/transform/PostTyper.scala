@@ -242,12 +242,24 @@ class PostTyper extends MacroTransform with IdentityDenotTransformer { thisPhase
           //  - the call's position
           // in the call field of an Inlined node.
           // The trace has enough info to completely reconstruct positions.
-          // The minimization is done for two reasons:
-          //  1. To save space (calls might contain large inline arguments, which would otherwise
-          //     be duplicated
-          //  2. To enable correct pickling (calls can share symbols with the inlined code, which
-          //     would trigger an assertion when pickling).
-          val callTrace = Ident(call.symbol.topLevelClass.typeRef).withPos(call.pos)
+          // The minimization is done to save space. Calls might contain large inline arguments,
+          // which would otherwise be duplicated.
+          //
+          // The outermost call is kept to have the original tree for the IDE
+
+          val callTrace =
+          if (enclosingInlineds.isEmpty) {
+            val outline = new TreeMap() {
+              override def transform(tree: tpd.Tree)(implicit ctx: Context): tpd.Tree = tree match {
+                case Inlined(call, _, _) => transform(call)
+                case _ => super.transform(tree)
+              }
+            }
+            outline.transform(call)
+          } else Ident(call.symbol.topLevelClass.typeRef).withPos(call.pos)
+
+          // TODO remove calls from the expansion that are not in enclosing inlineds
+
           cpy.Inlined(tree)(callTrace, transformSub(bindings), transform(expansion)(inlineContext(call)))
         case tree: Template =>
           withNoCheckNews(tree.parents.flatMap(newPart)) {

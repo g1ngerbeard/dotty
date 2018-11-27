@@ -8,6 +8,10 @@ object Test {
     println(show(foo1(foo0)))
     println(show(foo2(5)))
     println(show(foo2(foo0)))
+    println(show(foo2(foo1(foo0))))
+    foo1(foo0)
+    foo2(foo0)
+    foo2(foo1(foo0))
   }
 
   inline def foo0: Int = 54
