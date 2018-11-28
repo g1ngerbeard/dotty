@@ -642,8 +642,7 @@ object Parsers {
 
     /** QualId ::= id {`.' id}
     */
-    val qualId: () => Tree =
-      () => dotSelectors(termIdent())
+    def qualId(): Tree = dotSelectors(termIdent())
 
     /** SimpleExpr    ::= literal
      *                  | symbol
@@ -1489,7 +1488,7 @@ object Parsers {
         case parent :: Nil if in.token != LBRACE =>
           reposition(if (parent.isType) ensureApplied(wrapNew(parent)) else parent)
         case _ =>
-          New(reposition(templateBodyOpt(emptyConstructor, parents, isEnum = false)))
+          New(reposition(templateBodyOpt(emptyConstructor, parents, Nil, isEnum = false)))
       }
     }
 
@@ -2478,7 +2477,7 @@ object Parsers {
           tokenSeparated(WITH, constrApp)
         }
         else Nil
-      Template(constr, parents, EmptyValDef, Nil)
+      Template(constr, parents, Nil, EmptyValDef, Nil)
     }
 
 /* -------- TEMPLATES ------------------------------------------- */
@@ -2526,7 +2525,7 @@ object Parsers {
       val derived =
         if (isIdent(nme.derives)) {
           in.nextToken()
-          tokenSeparated(COMMA, qualId)
+          tokenSeparated(COMMA, () => convertToTypeId(qualId()))
         }
         else Nil
       (extended, derived)
@@ -2535,11 +2534,11 @@ object Parsers {
     /** Template          ::=  InheritClauses [TemplateBody]
      */
     def template(constr: DefDef, isEnum: Boolean = false): Template = {
-      val (parents, deriveds) = inheritClauses()
+      val (parents, derived) = inheritClauses()
       newLineOptWhenFollowedBy(LBRACE)
       if (isEnum && in.token != LBRACE)
         syntaxErrorOrIncomplete(ExpectedTokenButFound(LBRACE, in.token))
-      templateBodyOpt(constr, parents, isEnum)
+      templateBodyOpt(constr, parents, derived, isEnum)
     }
 
     /** TemplateOpt = [Template]
@@ -2549,15 +2548,15 @@ object Parsers {
       if (in.token == EXTENDS || isIdent(nme.derives) || in.token == LBRACE)
         template(constr, isEnum)
       else
-        Template(constr, Nil, EmptyValDef, Nil)
+        Template(constr, Nil, Nil, EmptyValDef, Nil)
     }
 
     /** TemplateBody ::= [nl] `{' TemplateStatSeq `}'
      */
-    def templateBodyOpt(constr: DefDef, parents: List[Tree], isEnum: Boolean): Template = {
+    def templateBodyOpt(constr: DefDef, parents: List[Tree], derived: List[Tree], isEnum: Boolean): Template = {
       val (self, stats) =
         if (in.token == LBRACE) withinEnum(isEnum)(templateBody()) else (EmptyValDef, Nil)
-      Template(constr, parents, self, stats)
+      Template(constr, parents, derived, self, stats)
     }
 
     def templateBody(): (ValDef, List[Tree]) = {

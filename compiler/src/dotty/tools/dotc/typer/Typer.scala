@@ -1551,7 +1551,8 @@ class Typer extends Namer
   def typedClassDef(cdef: untpd.TypeDef, cls: ClassSymbol)(implicit ctx: Context): Tree = track("typedClassDef") {
     if (!cls.info.isInstanceOf[ClassInfo]) return EmptyTree.assertingErrorsReported
 
-    val TypeDef(name, impl @ Template(constr, parents, self, _)) = cdef
+    val TypeDef(name, impl @ Template(constr, _, self, _)) = cdef
+    val parents = impl.parents
     val superCtx = ctx.superCallContext
 
     /** If `ref` is an implicitly parameterized trait, pass an implicit argument list.
@@ -1619,6 +1620,7 @@ class Typer extends Namer
     val constr1 = typed(constr).asInstanceOf[DefDef]
     val parentsWithClass = ensureFirstTreeIsClass(parents mapconserve typedParent, cdef.namePos)
     val parents1 = ensureConstrCall(cls, parentsWithClass)(superCtx)
+
     var self1 = typed(self)(ctx.outer).asInstanceOf[ValDef] // outer context where class members are not visible
     if (cls.isOpaqueCompanion) {
       // this is necessary to ensure selftype is correctly pickled
@@ -1633,7 +1635,7 @@ class Typer extends Namer
         typedStats(impl.body, dummy)(ctx.inClassContext(self1.symbol)))
 
       checkNoDoubleDeclaration(cls)
-      val impl1 = cpy.Template(impl)(constr1, parents1, self1, body1)
+      val impl1 = cpy.Template(impl)(constr1, parents1, Nil, self1, body1)
         .withType(dummy.termRef)
       if (!cls.is(AbstractOrTrait) && !ctx.isAfterTyper)
         checkRealizableBounds(cls, cdef.namePos)

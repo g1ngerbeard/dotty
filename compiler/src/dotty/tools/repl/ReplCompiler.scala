@@ -123,7 +123,7 @@ class ReplCompiler extends Compiler {
 
     implicit val ctx: Context = defs.state.context
 
-    val tmpl = Template(emptyConstructor, Nil, EmptyValDef, defs.stats)
+    val tmpl = Template(emptyConstructor, Nil, Nil, EmptyValDef, defs.stats)
     val module = ModuleDef(objectName(defs.state), tmpl)
       .withPos(Position(0, defs.stats.last.pos.end))
 
@@ -218,7 +218,7 @@ class ReplCompiler extends Compiler {
         import untpd._
 
         val valdef = ValDef("expr".toTermName, TypeTree(), Block(trees, unitLiteral))
-        val tmpl = Template(emptyConstructor, Nil, EmptyValDef, List(valdef))
+        val tmpl = Template(emptyConstructor, Nil, Nil, EmptyValDef, List(valdef))
         val wrapper = TypeDef("$wrapper".toTypeName, tmpl)
           .withMods(Modifiers(Final))
           .withPos(Position(0, expr.length))
