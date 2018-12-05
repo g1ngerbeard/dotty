@@ -525,6 +525,8 @@ object untpd extends Trees.Instance[Untyped] with UntypedTreeInfo {
         cpy.InterpolatedString(tree)(id, segments.mapConserve(transform))
       case Function(args, body) =>
         cpy.Function(tree)(transform(args), transform(body))
+      case PolyFunction(targs, body) =>
+        cpy.PolyFunction(tree)(transform(targs), transform(body))
       case InfixOp(left, op, right) =>
         cpy.InfixOp(tree)(transform(left), op, transform(right))
       case PostfixOp(od, op) =>
@@ -572,6 +574,8 @@ object untpd extends Trees.Instance[Untyped] with UntypedTreeInfo {
         this(x, segments)
       case Function(args, body) =>
         this(this(x, args), body)
+      case PolyFunction(targs, body) =>
+        this(this(x, targs), body)
       case InfixOp(left, op, right) =>
         this(this(this(x, left), op), right)
       case PostfixOp(od, op) =>
