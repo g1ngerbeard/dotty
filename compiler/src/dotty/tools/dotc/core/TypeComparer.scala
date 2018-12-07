@@ -845,7 +845,7 @@ class TypeComparer(initctx: Context) extends ConstraintHandling {
           compareLower(bounds(param2), followSuperType = false)
         case tycon2: TypeRef =>
           isMatchingApply(tp1) ||
-          defn.isTypelevel_S(tycon2.symbol) && compareS(tp2, tp1, fromBelow = true) || {
+          defn.isCompiletime_S(tycon2.symbol) && compareS(tp2, tp1, fromBelow = true) || {
             tycon2.info match {
               case info2: TypeBounds =>
                 val gbounds2 = ctx.gadt.bounds(tycon2.symbol)
@@ -886,7 +886,7 @@ class TypeComparer(initctx: Context) extends ConstraintHandling {
         case tycon1: TypeRef =>
           val sym = tycon1.symbol
           !sym.isClass && (
-            defn.isTypelevel_S(sym) && compareS(tp1, tp2, fromBelow = false) || {
+            defn.isCompiletime_S(sym) && compareS(tp1, tp2, fromBelow = false) || {
               val gbounds1 = ctx.gadt.bounds(tycon1.symbol)
               if (gbounds1 == null) recur(tp1.superType, tp2)
               else recur((gbounds1.hi & tycon1.info.bounds.hi).applyIfParameterized(args1), tp2)
