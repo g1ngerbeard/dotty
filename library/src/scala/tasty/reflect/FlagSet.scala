@@ -82,4 +82,7 @@ trait FlagSet {
 
   /** Is this symbol a parameter accessor */
   def isParamAccessor: Boolean
+
+  /** Is this symbol a package */
+  def isPackage: Boolean
 }

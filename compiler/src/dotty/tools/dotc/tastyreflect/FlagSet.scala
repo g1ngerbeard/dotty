@@ -32,6 +32,7 @@ class FlagSet(flags: Flags.FlagSet) extends scala.tasty.reflect.FlagSet {
   def isStable: Boolean = flags.is(Stable)
   def isParam: Boolean = flags.is(Param)
   def isParamAccessor: Boolean = flags.is(ParamAccessor)
+  def isPackage: Boolean = flags.is(Package)
 
   override def toString: String = {
     val flags = List.newBuilder[String]
@@ -62,6 +63,7 @@ class FlagSet(flags: Flags.FlagSet) extends scala.tasty.reflect.FlagSet {
     if (isStable) flags += "stable"
     if (isParam) flags += "param"
     if (isParamAccessor) flags += "paramAccessor"
+    if (isPackage) flags += "package"
     flags.result().mkString("<", ",", ">")
   }
 
