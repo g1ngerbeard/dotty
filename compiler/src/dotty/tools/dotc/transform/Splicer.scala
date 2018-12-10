@@ -113,15 +113,15 @@ object Splicer {
     }
 
     protected def interpretStaticMethodCall(moduleClass: Symbol, fn: Symbol, args: => List[Object])(implicit env: Env): Object = {
-      val instance = loadModule(moduleClass)
+      val inst = loadModule(moduleClass)
       def getDirectName(tp: Type, name: TermName): TermName = tp.widenDealias match {
         case tp: AppliedType if defn.isImplicitFunctionType(tp) =>
           getDirectName(tp.args.last, NameKinds.DirectMethodName(name))
         case _ => name
       }
       val name = getDirectName(fn.info.finalResultType, fn.name.asTermName)
-      val method = getMethod(instance.getClass, name, paramsSig(fn))
-      stopIfRuntimeException(method.invoke(instance, args: _*))
+      val method = getMethod(inst.getClass, name, paramsSig(fn))
+      stopIfRuntimeException(method.invoke(inst, args: _*))
     }
 
     protected def interpretModuleAccess(fn: Symbol)(implicit env: Env): Object =
