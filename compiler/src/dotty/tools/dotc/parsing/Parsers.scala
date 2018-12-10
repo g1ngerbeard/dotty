@@ -1925,31 +1925,28 @@ object Parsers {
      */
     def typeParamClause(ownerKind: ParamOwner.Value): List[TypeDef] = inBrackets {
       def typeParam(): TypeDef = {
-        val isConcreteOwner = ownerKind == ParamOwner.Class || ownerKind == ParamOwner.Def
+        val isAbstractOwner = ownerKind == ParamOwner.Type || ownerKind == ParamOwner.TypeParam
         val start = in.offset
         val mods = atPos(start) {
           annotsAsMods() | {
             if (ownerKind == ParamOwner.Class) Param | PrivateLocal
             else Param
           } | {
-            if (ownerKind != ParamOwner.Def)
-              if (isIdent(nme.raw.PLUS)) { in.nextToken(); Covariant }
-              else if (isIdent(nme.raw.MINUS)) { in.nextToken(); Contravariant }
-              else EmptyFlags
+            if (ownerKind == ParamOwner.Def) EmptyFlags
+            else if (isIdent(nme.raw.PLUS)) { in.nextToken(); Covariant }
+            else if (isIdent(nme.raw.MINUS)) { in.nextToken(); Contravariant }
             else EmptyFlags
           }
         }
         atPos(start, nameStart) {
           val name =
-            if (isConcreteOwner || in.token != USCORE) ident().toTypeName
-            else {
+            if (isAbstractOwner && in.token == USCORE) {
               in.nextToken()
               WildcardParamName.fresh().toTypeName
             }
+            else ident().toTypeName
           val hkparams = typeParamClauseOpt(ParamOwner.TypeParam)
-          val bounds =
-            if (isConcreteOwner) typeParamBounds(name)
-            else typeBounds()
+          val bounds = if (isAbstractOwner) typeBounds() else typeParamBounds(name)
           TypeDef(name, lambdaAbstract(hkparams, bounds)).withMods(mods)
         }
       }
@@ -2351,7 +2348,7 @@ object Parsers {
 
     /** TmplDef ::=  ([`case'] ‘class’ | trait’) ClassDef
      *            |  [`case'] `object' ObjectDef
-     *            |  `enum' EnumDef
+     *            |  ‘enum’ EnumDef
      */
     def tmplDef(start: Int, mods: Modifiers): Tree = {
       in.token match {
