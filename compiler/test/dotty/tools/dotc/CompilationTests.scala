@@ -12,8 +12,8 @@ import java.util.stream.{ Stream => JStream }
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
 import scala.concurrent.duration._
+import TestSources.sources
 import vulpix._
-import dotty.tools.io.JFile
 
 
 class CompilationTests extends ParallelTesting {
@@ -34,12 +34,12 @@ class CompilationTests extends ParallelTesting {
   // @Test  // enable to test compileStdLib separately with detailed stats
   def compileStdLibOnly: Unit = {
     implicit val testGroup: TestGroup = TestGroup("compileStdLibOnly")
-    compileList("compileStdLib", TestSources.stdLibWhitelisted, scala2Mode.and("-migration", "-Yno-inline", "-Ydetailed-stats"))
+    compileList("compileStdLib", TestSources.stdLibSources, scala2Mode.and("-migration", "-Yno-inline", "-Ydetailed-stats"))
   }.checkCompile()
 
   @Test def pos: Unit = {
     implicit val testGroup: TestGroup = TestGroup("compilePos")
-    compileList("compileStdLib", TestSources.stdLibWhitelisted, scala2Mode.and("-migration", "-Yno-inline")) +
+    compileList("compileStdLib", TestSources.stdLibSources, scala2Mode.and("-migration", "-Yno-inline")) +
     compileFile("tests/pos/nullarify.scala", defaultOptions.and("-Ycheck:nullarify")) +
     compileFile("tests/pos-scala2/rewrites.scala", scala2Mode.and("-rewrite")).copyToTarget() +
     compileFile("tests/pos-special/utf8encoded.scala", explicitUTF8) +
@@ -218,14 +218,14 @@ class CompilationTests extends ParallelTesting {
     )
 
     val libraryDirs = List(Paths.get("library/src"), Paths.get("library/src-bootstrapped"))
-    val librarySources = libraryDirs.flatMap(d => sources(Files.walk(d)))
+    val librarySources = libraryDirs.flatMap(sources(_))
 
     val lib =
       compileList("src", librarySources,
         defaultOptions.and("-Ycheck-reentrant", "-strict", "-priorityclasspath", defaultOutputDir))(libGroup)
 
     val compilerDir = Paths.get("compiler/src")
-    val compilerSources = sources(Files.walk(compilerDir))
+    val compilerSources = sources(compilerDir)
 
     val backendDir = Paths.get("scala-backend/src/compiler/scala/tools/nsc/backend")
     val backendJvmDir = Paths.get("scala-backend/src/compiler/scala/tools/nsc/backend/jvm")
@@ -238,11 +238,11 @@ class CompilationTests extends ParallelTesting {
       List("BCodeICodeCommon.scala", "GenASM.scala", "GenBCode.scala", "ScalacBackendInterface.scala", "BackendStats.scala", "BCodeAsmEncode.scala")
 
     val backendSources =
-      sources(Files.list(backendDir), excludedFiles = backendExcluded)
+      sources(backendDir, excludedFiles = backendExcluded, shallow = true)
     val backendJvmSources =
-      sources(Files.list(backendJvmDir), excludedFiles = backendJvmExcluded)
+      sources(backendJvmDir, excludedFiles = backendJvmExcluded, shallow = true)
     val scalaJSIRSources =
-      sources(Files.list(scalaJSIRDir))
+      sources(scalaJSIRDir, shallow = true)
 
     val dotty1 = compileList("dotty", compilerSources ++ backendSources ++ backendJvmSources ++ scalaJSIRSources, opt)(dotty1Group)
     val dotty2 = compileList("dotty", compilerSources ++ backendSources ++ backendJvmSources ++ scalaJSIRSources, opt)(dotty2Group)
@@ -267,9 +267,10 @@ class CompilationTests extends ParallelTesting {
       }.keepOutput :: Nil
     }.map(_.checkCompile())
 
-    assert(new java.io.File(s"out/$dotty1Group/dotty/").exists)
-    assert(new java.io.File(s"out/$dotty2Group/dotty/").exists)
-    assert(new java.io.File(s"out/$libGroup/src/").exists)
+    def assertExists(path: String) = assertTrue(Files.exists(Paths.get(path)))
+    assertExists(s"out/$dotty1Group/dotty/")
+    assertExists(s"out/$dotty2Group/dotty/")
+    assertExists(s"out/$libGroup/src/")
     compileList("idempotency", List("tests/idempotency/BootstrapChecker.scala", "tests/idempotency/IdempotencyCheck.scala"), defaultOptions).checkRuns()
 
     tests.foreach(_.delete())
@@ -282,17 +283,13 @@ class CompilationTests extends ParallelTesting {
     // 2. copy `pluginFile` to destination
     def compileFilesInDir(dir: String): CompilationTest = {
       val outDir = defaultOutputDir + "testPlugins/"
-      val sourceDir = new JFile(dir)
+      val sourceDir = new java.io.File(dir)
 
-      val dirs = sourceDir.listFiles.foldLeft(List.empty[JFile]) { case (dirs, f) =>
-        if (f.isDirectory) f :: dirs else dirs
-      }
-
+      val dirs = sourceDir.listFiles.toList.filter(_.isDirectory)
       val targets = dirs.map { dir =>
         val compileDir = createOutputDirsForDir(dir, sourceDir, outDir)
-        import java.nio.file.StandardCopyOption.REPLACE_EXISTING
-        Files.copy(dir.toPath.resolve(pluginFile), compileDir.toPath.resolve(pluginFile), REPLACE_EXISTING)
-        val flags = TestFlags(withCompilerClasspath, noCheckOptions) and ("-Xplugin:" + compileDir.getAbsolutePath)
+        Files.copy(dir.toPath.resolve(pluginFile), compileDir.toPath.resolve(pluginFile), StandardCopyOption.REPLACE_EXISTING)
+        val flags = TestFlags(withCompilerClasspath, noCheckOptions).and("-Xplugin:" + compileDir.getAbsolutePath)
         SeparateCompilationSource("testPlugins", dir, flags, compileDir)
       }
 
@@ -306,15 +303,4 @@ class CompilationTests extends ParallelTesting {
 object CompilationTests {
   implicit val summaryReport: SummaryReporting = new SummaryReport
   @AfterClass def cleanup(): Unit = summaryReport.echoSummary()
-
-  def sources(paths: JStream[Path], excludedFiles: List[String] = Nil): List[String] = {
-    val sources = paths.iterator().asScala
-      .filter(path =>
-        (path.toString.endsWith(".scala") || path.toString.endsWith(".java"))
-          && !excludedFiles.contains(path.getFileName.toString))
-      .map(_.toString).toList
-
-    paths.close()
-    sources
-  }
 }

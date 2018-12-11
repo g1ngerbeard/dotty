@@ -30,9 +30,7 @@ class IdempotencyTests extends ParallelTesting {
     implicit val testGroup: TestGroup = TestGroup("idempotency")
     val opt = defaultOptions
 
-    def sourcesFrom(dir: Path) = CompilationTests.sources(Files.walk(dir))
-
-    val strawmanSources = sourcesFrom(Paths.get("collection-strawman/collections/src/main"))
+    val strawmanSources = TestSources.sources(Paths.get("collection-strawman/collections/src/main"))
     val strawmanSourcesSorted = strawmanSources.sorted
     val strawmanSourcesRevSorted = strawmanSourcesSorted.reverse
 
@@ -45,7 +43,7 @@ class IdempotencyTests extends ParallelTesting {
       (for {
         testDir <- new JFile("tests/order-idempotency").listFiles() if testDir.isDirectory
       } yield {
-        val sources = sourcesFrom(testDir.toPath)
+        val sources = TestSources.sources(testDir.toPath)
         compileList(testDir.getName, sources, opt)(TestGroup("idempotency/orderIdempotency1")) +
         compileList(testDir.getName, sources.reverse, opt)(TestGroup("idempotency/orderIdempotency2"))
       }).reduce(_ + _)
