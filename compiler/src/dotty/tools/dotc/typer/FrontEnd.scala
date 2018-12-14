@@ -6,12 +6,9 @@ import core._
 import Phases._
 import Contexts._
 import Symbols._
-import dotty.tools.dotc.parsing.JavaParsers.JavaParser
-import parsing.Parsers.Parser
 import config.Config
 import config.Printers.{typr, default}
 import util.Stats._
-import scala.util.control.NonFatal
 import ast.Trees._
 
 class FrontEnd extends Phase {
@@ -31,32 +28,13 @@ class FrontEnd extends Phase {
   def stillToBeEntered(name: String): Boolean =
     remaining.exists(_.compilationUnit.toString.endsWith(name + ".scala"))
 
-  def monitor(doing: String)(body: => Unit)(implicit ctx: Context): Unit =
-    try body
-    catch {
-      case NonFatal(ex) =>
-        ctx.echo(s"exception occurred while $doing ${ctx.compilationUnit}")
-        throw ex
-    }
-
-  def parse(implicit ctx: Context): Unit = monitor("parsing") {
-    val unit = ctx.compilationUnit
-    unit.untpdTree =
-      if (unit.isJava) new JavaParser(unit.source).parse()
-      else new Parser(unit.source).parse()
-    val printer = if (ctx.settings.Xprint.value.contains("parser")) default else typr
-    printer.println("parsed:\n" + unit.untpdTree.show)
-    if (Config.checkPositions)
-      unit.untpdTree.checkPos(nonOverlapping = !unit.isJava && !ctx.reporter.hasErrors)
-  }
-
-  def enterSyms(implicit ctx: Context): Unit = monitor("indexing") {
+  private def enterSyms(implicit ctx: Context): Unit = monitor("indexing") {
     val unit = ctx.compilationUnit
     ctx.typer.index(unit.untpdTree)
     typr.println("entered: " + unit.source)
   }
 
-  def typeCheck(implicit ctx: Context): Unit = monitor("typechecking") {
+  private def typeCheck(implicit ctx: Context): Unit = monitor("typechecking") {
     val unit = ctx.compilationUnit
     unit.tpdTree = ctx.typer.typedExpr(unit.untpdTree)
     typr.println("typed: " + unit.source)
@@ -79,7 +57,7 @@ class FrontEnd extends Phase {
       ctx.inform(s"compiling ${unit.source}")
       ctx.fresh.setCompilationUnit(unit)
     }
-    unitContexts foreach (parse(_))
+
     record("parsedTrees", ast.Trees.ntrees)
     remaining = unitContexts
     while (remaining.nonEmpty) {

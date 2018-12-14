@@ -10,6 +10,7 @@ import Denotations._
 import Decorators._
 import config.Printers.config
 import scala.collection.mutable.ListBuffer
+import scala.util.control.NonFatal
 import dotty.tools.dotc.transform.MegaPhase._
 import dotty.tools.dotc.transform._
 import Periods._
@@ -293,7 +294,7 @@ object Phases {
     /** @pre `isRunnable` returns true */
     def runOn(units: List[CompilationUnit])(implicit ctx: Context): List[CompilationUnit] =
       units.map { unit =>
-        val unitCtx = ctx.fresh.setPhase(this.start).setCompilationUnit(unit)
+        val unitCtx = ctx.fresh.setCompilationUnit(unit)
         run(unitCtx)
         unitCtx.compilationUnit
       }
@@ -308,7 +309,7 @@ object Phases {
     def checkPostCondition(tree: tpd.Tree)(implicit ctx: Context): Unit = ()
 
     /** Is this phase the standard typerphase? True for FrontEnd, but
-     *  not for other first phases (such as FromTasty). The predicate
+     *  not for other first phases (such as ReadTasty). The predicate
      *  is tested in some places that perform checks and corrections. It's
      *  different from isAfterTyper (and cheaper to test).
      */
@@ -387,6 +388,14 @@ object Phases {
 
     final def iterator: Iterator[Phase] =
       Iterator.iterate(this)(_.next) takeWhile (_.hasNext)
+
+    final def monitor(doing: String)(body: => Unit)(implicit ctx: Context): Unit =
+      try body
+      catch {
+        case NonFatal(ex) =>
+          ctx.echo(s"exception occurred while $doing ${ctx.compilationUnit}")
+          throw ex
+      }
 
     override def toString: String = phaseName
   }
