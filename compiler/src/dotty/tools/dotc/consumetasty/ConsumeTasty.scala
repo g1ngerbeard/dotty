@@ -17,7 +17,7 @@ object ConsumeTasty {
     }
 
     val currentClasspath = QuoteDriver.currentClasspath
-    val args = "-from-tasty" +: "-classpath" +: s"$classpath:$currentClasspath" +: classes
+    val args = "-from-tasty" :: "-Yretain-trees" :: "-classpath" :: s"$classpath:$currentClasspath" :: classes
     (new Consume).process(args.toArray)
   }
 }
