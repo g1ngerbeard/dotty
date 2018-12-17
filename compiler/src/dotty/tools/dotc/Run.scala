@@ -44,7 +44,7 @@ class Run(comp: Compiler, ictx: Context) extends ImplicitRunInfo with Constraint
     ctx.base.setPhasePlan(comp.phases)
     val rootScope = new MutableScope
     val bootstrap = ctx.fresh
-      .setPeriod(Period(comp.nextRunId, FirstPhaseId))
+      .setPeriod(Period(comp.nextRunId(), FirstPhaseId))
       .setScope(rootScope)
     rootScope.enter(ctx.definitions.RootPackage)(bootstrap)
     val start = bootstrap.fresh
@@ -169,7 +169,7 @@ class Run(comp: Compiler, ictx: Context) extends ImplicitRunInfo with Constraint
           Stats.trackTime(s"$phase ms ") {
             val start = System.currentTimeMillis
             val profileBefore = profiler.beforePhase(phase)
-            units = phase.runOn(units)(ctx.fresh.setPhase(phase.start))
+            units = phase.runOn(units)(ctx.withPhase(phase))
             profiler.afterPhase(phase, profileBefore)
             if (ctx.settings.Xprint.value.containsPhase(phase)) {
               for (unit <- units) {
