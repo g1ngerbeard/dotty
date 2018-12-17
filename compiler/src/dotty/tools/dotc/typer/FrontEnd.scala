@@ -9,13 +9,17 @@ import Symbols._
 import config.Config
 import config.Printers.{typr, default}
 import util.Stats._
-import ast.Trees._
+import ast.{tpd, Trees}
+import Trees._
 
 class FrontEnd extends Phase {
+  import tpd._
 
   override def phaseName: String = FrontEnd.name
   override def isTyper: Boolean = true
-  import ast.tpd
+
+  // Run regardless of parsing errors
+  override def isRunnable(implicit ctx: Context): Boolean = true
 
   override def allowsImplicitSearch: Boolean = true
 
@@ -42,7 +46,7 @@ class FrontEnd extends Phase {
     record("retained typed trees after typer", unit.tpdTree.treeSize)
   }
 
-  private def firstTopLevelDef(trees: List[tpd.Tree])(implicit ctx: Context): Symbol = trees match {
+  private def firstTopLevelDef(trees: List[Tree])(implicit ctx: Context): Symbol = trees match {
     case PackageDef(_, defs) :: _    => firstTopLevelDef(defs)
     case Import(_, _) :: defs        => firstTopLevelDef(defs)
     case (tree @ TypeDef(_, _)) :: _ => tree.symbol
@@ -58,14 +62,14 @@ class FrontEnd extends Phase {
       ctx.fresh.setCompilationUnit(unit)
     }
 
-    record("parsedTrees", ast.Trees.ntrees)
+    record("parsedTrees", Trees.ntrees)
     remaining = unitContexts
     while (remaining.nonEmpty) {
       enterSyms(remaining.head)
       remaining = remaining.tail
     }
     unitContexts.foreach(typeCheck(_))
-    record("total trees after typer", ast.Trees.ntrees)
+    record("total trees after typer", Trees.ntrees)
     unitContexts.map(_.compilationUnit).filterNot(discardAfterTyper)
   }
 
